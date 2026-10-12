@@ -7,10 +7,11 @@
 # ==============================================================================
 set -euo pipefail
 
-# 1. Cargar archivo de configuración
-CONFIG_FILE="$HOME/monitor-servidor-atlas/config/monitor.conf"
+# 1. Determinar ruta dinamica del proyecto y cargar configuración
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" & pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config/monitor.conf"
 
-if [ ! -f "$CONFIG_FILE" ]; then
+if [ ! -f "$CONFIG_FILE" ]; then	
     echo "❌ ERROR: Archivo de configuración '$CONFIG_FILE' no encontrado." >&2
     exit 2
 fi
@@ -19,7 +20,19 @@ fi
 # shellcheck source=/dev/null
 source "$CONFIG_FILE"
 
-# 2. Asegurar existencia de carpeta y archivo de logs
+# Validar que LOG_FILE este definido
+if [ -z "${LOG_FILE:-}" ]; then
+	echo "ERROR: La variable LOG_FILE no esta definida en $CONFIG_FILE." >&2
+	exit 2
+fi
+
+# Validar que la herramienta 'nc' este instalada
+if ! command -v nc >/dev/null 2>&1; then
+	echo "ERROR: 'nc' (netcat) no esta instalado. Instalalo con: sudo apt install netcat-openbsd" >&2
+	exit 2
+fi
+
+# 3. Asegurar existencia de carpeta de logs
 mkdir -p "$(dirname "$LOG_FILE")"
 
 FECHA=$(date "+%Y-%m-%d %H:%M:%S")
@@ -29,7 +42,7 @@ echo "==================================================" | tee -a "$LOG_FILE"
 
 ESTADO_GENERAL=0
 
-# 3. Monitoreo de Almacenamiento (Partición Raíz)
+# 4. Monitoreo de Almacenamiento (Partición Raíz)
 PORCENTAJE_DISCO=$(df --output=pcent / | tail -1 | tr -dc '0-9')
 echo "[1] Almacenamiento (/): ${PORCENTAJE_DISCO}% de uso" | tee -a "$LOG_FILE"
 
@@ -43,7 +56,7 @@ else
     echo "  🟢 Disco en nivel normal." | tee -a "$LOG_FILE"
 fi
 
-# 4. Monitoreo de Servicios (Systemd)
+# 5. Monitoreo de Servicios (Systemd)
 echo "[2] Estado de Servicios Críticos:" | tee -a "$LOG_FILE"
 for SERVICIO in "${SERVICIOS_A_VIGILAR[@]}"; do
     if systemctl is-active --quiet "$SERVICIO"; then
@@ -54,7 +67,7 @@ for SERVICIO in "${SERVICIOS_A_VIGILAR[@]}"; do
     fi
 done
 
-# 5. Monitoreo de Puertos TCP con Netcat (nc)
+# 6. Monitoreo de Puertos TCP con Netcat (nc)
 echo "[3] Auditoría de Conectividad a Puertos TCP (Localhost):" | tee -a "$LOG_FILE"
 for PUERTO in "${PUERTOS_A_VIGILAR[@]}"; do
     if nc -zv -w 2 127.0.0.1 "$PUERTO" > /dev/null 2>&1; then

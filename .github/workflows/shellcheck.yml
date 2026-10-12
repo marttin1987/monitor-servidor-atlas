@@ -1,0 +1,20 @@
+name: Lint Scripts con ShellCheck
+
+on:
+	push:
+		branches: [ "main" ]
+	pull_request:
+	 branches: [ "main" ]
+
+jobs:
+	shellcheck:
+	 name: Runner de ShellCheck
+	 runs-on: ubuntu-latest
+	 steps:
+	  - name: Descargar el codigo del repositorio
+	    uses: actions/checkout@v4
+	 
+	  - name: Ejecutar ShellCheck en todos los scripts .sh
+	    uses: ludeeus/action-shellcheck@master
+	    with:
+	      severity: warning

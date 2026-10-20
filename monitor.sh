@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # 1. Determinar ruta dinamica del proyecto y cargar configuración
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" & pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/config/monitor.conf"
 
 if [ ! -f "$CONFIG_FILE" ]; then	
